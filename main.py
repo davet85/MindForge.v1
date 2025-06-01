@@ -33,6 +33,11 @@ DEFAULT_PROMPT = (
 st.set_page_config("MindForge – Reflect to Evolve", layout="wide")
 st.title("🧠 MindForge")
 
+# Force re-validation of session state for deployment edge cases
+if st.session_state.get("authenticated") and not st.session_state.get("profile"):
+    st.session_state["authenticated"] = False
+    st.session_state["username"] = None
+
 # === UTILS ===
 def hash_pass(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -60,7 +65,7 @@ def authenticate(username, password):
     return None
 
 # === SESSION DEFAULTS ===
-if "authenticated" not in st.session_state:
+if not st.session_state.get("authenticated") or not st.session_state.get("profile"):
     st.session_state.update({
         "authenticated": False,
         "username": None,
