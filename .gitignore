@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Environment files
+.env
+.env.*
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Streamlit/Cache
+.streamlit/config.toml
+.streamlit/secrets.toml
+.cache/
+*.log
+
+# User data
+database/user_profile.json
+
+# PyInstaller
+*.spec
+build/
+dist/
+
+# Jupyter/IPython
+.ipynb_checkpoints/
+
+# Package manager
+*.egg-info/
+pip-wheel-metadata/
+
+# Git
+*.orig
+.env
+database/user_profile.json
