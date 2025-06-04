@@ -1,4 +1,4 @@
-import streamlit as st
+\import streamlit as st
 import os
 import json
 from pathlib import Path
@@ -48,10 +48,10 @@ You are the Onboarding Logic Engine for Introspect Nexus.
    - 1: Survival, 2: Stuck, 3: Building, 4: Optimizing
 4. Return JSON:
 {
-  "normalized_scores": {...},
-  "composite_score": ..., 
-  "functional_tier": ..., 
-  "emotional_tone": "..., ..., ..."
+  \"normalized_scores\": {...},
+  \"composite_score\": ..., 
+  \"functional_tier\": ..., 
+  \"emotional_tone\": \"..., ..., ...\"
 }
 """
     user_msg = {
@@ -69,7 +69,13 @@ You are the Onboarding Logic Engine for Introspect Nexus.
             {"role": "user", "content": json.dumps(user_msg)}
         ]
     )
-    return json.loads(response.choices[0].message.content)
+    content = response.choices[0].message.content.strip()
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        st.error("❌ GPT response was not valid JSON. See output below:")
+        st.code(content)
+        raise
 
 # === ONBOARDING ===
 if not PROFILE_PATH.exists() or not st.session_state["onboarding_complete"]:
@@ -98,7 +104,7 @@ if not PROFILE_PATH.exists() or not st.session_state["onboarding_complete"]:
     raw_scores = {}
     for domain in DIMENSIONS:
         st.markdown(f"**{domain} Wellness**")
-        score = sum([st.slider(q, 1, 10, 5) for q in domain_qs[domain]])
+        score = sum([st.slider(q, 1, 10, 5, key=f"{domain}_{q}") for q in domain_qs[domain]])
         raw_scores[domain.lower()] = score
 
     st.subheader("📝 Narrative Input")
