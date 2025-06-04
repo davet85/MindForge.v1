@@ -1,10 +1,9 @@
-# main.py – MindForge v1.2.0 (Avatar Assessment First Launch Prototype)
-
 import streamlit as st
-import json
 import os
-from openai import OpenAI, OpenAIError
+import json
+from pathlib import Path
 from dotenv import load_dotenv
+import openai
 
 # === INIT ===
 load_dotenv()
@@ -12,74 +11,133 @@ api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     st.error("❌ OpenAI API key missing. Check your .env file.")
     st.stop()
-client = OpenAI(api_key=api_key)
+client = openai.OpenAI(api_key=api_key)
 
-AVATARS = {
-    "Ember":      {"domain": "Emotional",     "emoji": "🔥", "summary": "You are driven by emotion and intensity. You feel deeply, react instinctively, and carry unresolved wounds that fuel your fire."},
-    "Pulse":      {"domain": "Physical",      "emoji": "💪", "summary": "You are grounded in the body. Your focus is health, vitality, and discipline, but tension may manifest somatically."},
-    "Vera":       {"domain": "Intellectual",  "emoji": "🧠", "summary": "You are guided by thought and logic. Analysis is your armor—but sometimes at the cost of emotional connection."},
-    "Haven":      {"domain": "Social",        "emoji": "🤝", "summary": "You seek harmony and belonging. Relationships shape your identity, but people-pleasing may mask your truth."},
-    "Solace":     {"domain": "Spiritual",     "emoji": "🕊️", "summary": "You are a seeker. Meaning, belief, and purpose define your path. You may wrestle with existential fear or faith loss."},
-    "Forge":      {"domain": "Occupational",  "emoji": "🛠️", "summary": "You define yourself through action. Productivity and mission matter most—but burnout is close behind."},
-    "Ledger":     {"domain": "Financial",     "emoji": "💰", "summary": "You are security-focused. Finances give you control—but also anxiety, scarcity, or power dynamics."},
-    "Terra":      {"domain": "Environmental", "emoji": "🌿", "summary": "You are shaped by space and rhythm. Clutter, disconnection, or chaos in your environment mirrors your inner state."}
+# === CONSTANTS ===
+PROFILE_PATH = Path("database/user_profile.json")
+DIMENSIONS = ["Emotional", "Physical", "Intellectual", "Social", "Spiritual", "Occupational", "Financial", "Environmental"]
+
+# === SESSION DEFAULTS ===
+st.session_state.setdefault("onboarding_complete", False)
+st.session_state.setdefault("level", 1)
+st.session_state.setdefault("rca_score", 0)
+
+# === UTILS ===
+def save_profile(profile):
+    PROFILE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with PROFILE_PATH.open("w", encoding="utf-8") as f:
+        json.dump(profile, f, indent=2)
+
+def load_profile():
+    if PROFILE_PATH.exists():
+        with PROFILE_PATH.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+# === NORMALIZATION ===
+def normalize(score):
+    return int((score / 30) * 100)  # Max 3 Qs per domain scored 1–10
+
+# === GPT Tier Assignment ===
+def analyze_user(profile):
+    system_msg = """
+You are the Onboarding Logic Engine for Introspect Nexus.
+1. Analyze questionnaire scores.
+2. Parse user narrative.
+3. Assign functional tier (1-4):
+   - 1: Survival, 2: Stuck, 3: Building, 4: Optimizing
+4. Return JSON:
+{
+  "normalized_scores": {...},
+  "composite_score": ..., 
+  "functional_tier": ..., 
+  "emotional_tone": "..., ..., ..."
 }
+"""
+    user_msg = {
+        "name": profile['name'],
+        "age": profile['age'],
+        "email": profile['email'],
+        "sentence": profile['sentence'],
+        "narrative": profile['narrative'],
+        "raw_scores": profile['raw_scores']
+    }
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": json.dumps(user_msg)}
+        ]
+    )
+    return json.loads(response.choices[0].message.content)
 
-DEFAULT_PROMPT = (
-    "You are MindForge — an advanced recursive mirror. Begin by analyzing this user's answers to a multi-domain cognitive wellness scan. "
-    "Detect emotional subtext, cognitive rigidity, relational scripts, and blindspots. Then generate layered follow-up prompts to entice deeper self-reflection."
-)
+# === ONBOARDING ===
+if not PROFILE_PATH.exists() or not st.session_state["onboarding_complete"]:
+    st.title("🧠 MindForge Onboarding")
+    name = st.text_input("Name")
+    age = st.number_input("Age", min_value=10, max_value=100)
+    email = st.text_input("Email")
+    code = st.text_input("Enter dummy verification code")
+    sentence = st.text_input("Who are you in one sentence?")
+    use_tools = st.text_input("Do you use any self-development tools now? (optional)")
+    time_spent = st.text_input("How much time weekly on your growth? (optional)")
+    pay_interest = st.text_input("Would you pay for AI guidance? (optional)")
 
-st.set_page_config("MindForge – Cognitive Assessment", layout="wide")
-st.title("🧠 MindForge")
+    st.subheader("🧪 8-Domain Wellness Survey")
+    domain_qs = {
+        "Emotional": ["How often do you feel emotionally overwhelmed?"],
+        "Physical": ["Rate your sleep and energy levels."],
+        "Intellectual": ["Do you feel mentally stimulated or engaged?"],
+        "Social": ["Are your relationships satisfying and healthy?"],
+        "Spiritual": ["Do you feel aligned with your beliefs or purpose?"],
+        "Occupational": ["How satisfied are you with your current work or role?"],
+        "Financial": ["Rate your current sense of financial control."],
+        "Environmental": ["Do you feel calm and supported by your surroundings?"]
+    }
 
-# === LANDING ASSESSMENT ===
-st.subheader("🌐 Cognitive Alignment Scan")
+    raw_scores = {}
+    for domain in DIMENSIONS:
+        st.markdown(f"**{domain} Wellness**")
+        score = sum([st.slider(q, 1, 10, 5) for q in domain_qs[domain]])
+        raw_scores[domain.lower()] = score
 
-questions = [
-    "How often do you feel emotionally overwhelmed or dysregulated?",
-    "How would you describe your current physical state (energy, sleep, movement)?",
-    "Do you feel intellectually stimulated or mentally stagnant lately?",
-    "How connected and authentic do you feel in your relationships?",
-    "Are you currently struggling with belief, purpose, or spiritual identity?",
-    "How would you describe your work or daily structure right now?",
-    "Are finances a source of anxiety, control, or disorganization for you?",
-    "Does your environment feel like a sanctuary or a source of stress?"
-]
+    st.subheader("📝 Narrative Input")
+    narrative = st.text_area("Describe your current struggles, where you are in life, and who you want to become.", height=200)
 
-domains = list(AVATARS.keys())
-user_scores = {}
+    if st.button("Submit & Analyze"):
+        profile = {
+            "name": name,
+            "age": age,
+            "email": email,
+            "sentence": sentence,
+            "narrative": narrative,
+            "raw_scores": raw_scores,
+            "use_tools": use_tools,
+            "time_spent": time_spent,
+            "pay_interest": pay_interest
+        }
+        result = analyze_user(profile)
+        profile.update(result)
+        save_profile(profile)
+        st.session_state.update({"onboarding_complete": True})
+        st.success(f"🧬 Tier Assigned: {result['functional_tier']} | Tone: {result['emotional_tone']}")
+        st.rerun()
+    st.stop()
 
-for i, q in enumerate(questions):
-    avatar = domains[i]
-    st.markdown(f"**{AVATARS[avatar]['emoji']} {q}**")
-    user_scores[avatar] = st.slider("", 0, 10, 5, key=f"q{i}")
+# === DASHBOARD ===
+profile = load_profile()
+if not profile:
+    st.error("Profile load error.")
+    st.stop()
 
-if st.button("🔍 Analyze & Assign Avatar"):
-    dominant_avatar = max(user_scores, key=user_scores.get)
-    selected = AVATARS[dominant_avatar]
+st.title("🧭 MindForge Dashboard")
+st.markdown(f"**Name:** {profile['name']}")
+st.markdown(f"**Functional Tier:** {profile['functional_tier']}")
+st.markdown(f"**Composite Score:** {profile['composite_score']}")
+st.markdown(f"**Tone:** {profile['emotional_tone']}")
+st.markdown("---")
 
-    st.markdown("---")
-    st.header(f"{selected['emoji']} Assigned Avatar: {dominant_avatar}")
-    st.write(f"**Domain:** {selected['domain']}")
-    st.write(f"**Reflection:** {selected['summary']}")
-
-    # Generate deeper questions from GPT
-    input_summary = "\n".join([f"{AVATARS[k]['domain']}: {v}/10" for k, v in user_scores.items()])
-    try:
-        with st.spinner("MindForge is constructing a deeper mirror..."):
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": DEFAULT_PROMPT},
-                    {"role": "user", "content": input_summary}
-                ],
-                temperature=0.7
-            )
-            reply = response.choices[0].message.content
-            st.markdown("### 🧠 Insight & Deep Reflection Prompts")
-            st.markdown(reply)
-    except OpenAIError as e:
-        st.error(f"❌ OpenAI API error: {e}")
-    except Exception as e:
-        st.error(f"⚠️ Unexpected error: {e}")
+st.subheader("💬 Begin Daily Reflection")
+reflection = st.text_area("What’s present for you today?", height=150)
+if st.button("Submit Reflection"):
+    st.success("Reflection submitted. Future RCA scoring will be added here.")
