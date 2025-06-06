@@ -1,0 +1,22 @@
+{
+  "name": "Dave",
+  "age": 20,
+  "bio": "I like tacos and beer. ",
+  "dimension": "Emotional",
+  "avatar": "Ember",
+  "level": 1,
+  "rca_score": 10,
+  "missions": [],
+  "generated_prompt": "You are MindForge \u2014 an AI avatar guiding recursive alignment across eight wellness domains. Use coaching loops, emotional feedback, and symbolic recursion to help the user align thought, action, and identity.",
+  "history": [
+    {
+      "role": "user",
+      "content": " who am i\n"
+    },
+    {
+      "role": "assistant",
+      "content": "The question \"Who am I?\" is a profound one, often marking the beginning of a journey towards self-discovery and alignment. Let's explore this together by examining eight wellness domains: emotional, mental, physical, social, environmental, spiritual, occupational, and financial.\n\n**Emotional**: Reflect on your feelings. What emotions do you experience most frequently? How do they guide your decisions and interactions?\n\n**Mental**: Consider your thoughts and beliefs. What narratives do you tell yourself about who you are? How do they shape your perception of the world?\n\n**Physical**: Assess your relationship with your body. How do you care for your physical health, and what does your body communicate to you?\n\n**Social**: Examine your connections with others. What roles do you play in your relationships, and how do they reflect aspects of your identity?\n\n**Environmental**: Look at your surroundings. How does your environment influence your sense of self, and how do you impact it in return?\n\n**Spiritual**: Delve into your sense of purpose and meaning. What values and beliefs guide your life, and how do they contribute to your identity?\n\n**Occupational**: Reflect on your work and passions. How do your career and hobbies express who you are and who you aspire to be?\n\n**Financial**: Consider your financial habits and goals. How do they align with your values and contribute to your overall sense of identity?\n\nAs you reflect on these domains, notice any patterns or insights that emerge. Our identities are dynamic, shaped by our experiences and choices. By aligning your thoughts, actions, and identity across these areas, you can deepen your understanding of who you are. What resonates with you as you explore these domains?"
+    }
+  ],
+  "password_hash": "8f9eace2782b8bf22782ba30673bdb807912b45eeecda4531b96baaf220c0c24"
+}
